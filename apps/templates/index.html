@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Portal Berita</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8 text-center md:text-left">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+                <i class="fa-solid me-2 text-indigo-600"></i>Scraper Berita Real-Time
+            </h1>
+            <p class="text-slate-500 mt-1">Cari dan kumpulkan artikel berita terbaru berdasarkan topik dan preferensi
+                Anda.</p>
+        </header>
+
+        <!-- FORM INPUT (Atas) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+            <form id="searchForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                <!-- Topik Berita -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Topik
+                        Berita</label>
+                    <input type="text" id="topik" placeholder="Contoh: Gadget, AI, Crypto" required
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                </div>
+
+                <!-- Lokasi -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Lokasi</label>
+                    <select id="lokasi"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                        <option value="Indonesia">Indonesia</option>
+                        <option value="Global">Global (Internasional)</option>
+                    </select>
+                </div>
+
+                <!-- Rentang Waktu -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Rentang
+                        Waktu</label>
+                    <select id="rentangWaktu"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                        <option value="all" selected>Semua Waktu (Tanpa Batasan)</option>
+                        <option value="24h">24 Jam Terakhir</option>
+                        <option value="7d">7 Hari Terakhir</option>
+                        <option value="30d">30 Hari Terakhir</option>
+                    </select>
+                </div>
+
+                <!-- Jumlah Maksimal -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Jumlah
+                        Berita</label>
+                    <input type="number" id="maxResults" value="15" min="1" max="50"
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                </div>
+
+                <!-- Tombol Submit -->
+                <div class="md:col-span-2 lg:col-span-4 mt-2">
+                    <button type="submit" id="btnSubmit"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2 shadow-md hover:shadow-indigo-100">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Cari Berita</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- LOADING SPINNER -->
+        <div id="loading" class="hidden text-center py-12">
+            <div
+                class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-3">
+            </div>
+            <p class="text-slate-600 font-medium">Sedang mengekstraksi artikel berita...</p>
+        </div>
+
+        <!-- TABEL HASIL (Bawah) -->
+        <div id="resultContainer" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hidden">
+            <div class="p-4 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/50 gap-2">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-bold text-slate-800">Hasil Pencarian</h2>
+                    <span id="totalBadge"
+                        class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">0
+                        Berita</span>
+                </div>
+
+                <!-- Tombol Download / Export -->
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadFile('excel')"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Export Excel</span>
+                    </button>
+                    <button onclick="downloadFile('csv')"
+                        class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <span>Export CSV</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h2 class="font-bold text-slate-800">Hasil Pencarian</h2>
+                <span id="totalBadge"
+                    class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">0 Berita</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr
+                            class="bg-slate-100/70 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                            <th class="p-4 w-12 text-center">No</th>
+                            <th class="p-4 w-32">Gambar</th>
+                            <th class="p-4">Judul & Ringkasan</th>
+                            <th class="p-4 w-40">Sumber</th>
+                            <th class="p-4 w-24 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-200 text-sm">
+                        <!-- Data berita dimuat di sini -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT FETCH API -->
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const topik = document.getElementById('topik').value;
+            const lokasi = document.getElementById('lokasi').value;
+            const rentangWaktu = document.getElementById('rentangWaktu').value;
+            const maxResults = document.getElementById('maxResults').value;
+
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            const tableBody = document.getElementById('tableBody');
+            const btnSubmit = document.getElementById('btnSubmit');
+
+            // Reset Tampilan
+            loading.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('opacity-50');
+
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topik: topik,
+                        lokasi: lokasi,
+                        rentang_waktu: rentangWaktu,
+                        max_results: maxResults
+                    })
+                });
+
+                const data = await response.json();
+
+                // Clear isi tabel sebelumnya
+                tableBody.innerHTML = '';
+
+                if (data.berita && data.berita.length > 0) {
+                    document.getElementById('totalBadge').innerText = `${data.total} Berita Ditemukan`;
+
+                    data.berita.forEach((item, index) => {
+                        const imgSrc = item.Foto !== '-' ? item.Foto : 'https://via.placeholder.com/150x100?text=No+Image';
+
+                        const row = `
+                            <tr class="hover:bg-slate-50/80 transition">
+                                <td class="p-4 text-center font-semibold text-slate-400">${index + 1}</td>
+                                <td class="p-4">
+                                    <img src="${imgSrc}" alt="Foto" class="w-24 h-16 object-cover rounded-md border border-slate-200"
+                                         onerror="this.onerror=null; this.src='https://via.placeholder.com/150x100?text=No+Image';">
+                                </td>
+                                <td class="p-4">
+                                    <a href="${item.Sumber}" target="_blank" class="font-semibold text-indigo-600 hover:text-indigo-800 line-clamp-2 mb-1">
+                                        ${item.Judul}
+                                    </a>
+                                    <p class="text-slate-500 text-xs line-clamp-2">${item['Deskripsi Artikel']}</p>
+                                </td>
+                                <td class="p-4 text-xs">
+                                    <span class="font-medium text-slate-700 block">${item['Sumber Nama Website']}</span>
+                                    <span class="text-slate-400">${item.Tanggal}</span>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <a href="${item.Sumber}" target="_blank" 
+                                       class="inline-block bg-slate-100 hover:bg-indigo-50 text-indigo-600 p-2 rounded-lg transition" title="Buka Link">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    alert('Tidak ada berita yang ditemukan dengan kriteria tersebut.');
+                }
+
+            } catch (error) {
+                alert('Terjadi kesalahan saat mengambil data.');
+                console.error(error);
+            } finally {
+                loading.classList.add('hidden');
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('opacity-50');
+            }
+        });
+    </script>
+</body>
+
+</html>
