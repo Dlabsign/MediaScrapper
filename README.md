@@ -1,76 +1,76 @@
 # MediaScrapper
 
-A Python-based news scraping tool that collects and aggregates news articles from thousands of official media sources via Google News RSS. No AI API keys required — purely RSS-based scraping with built-in keyword analysis.
+Alat scraping berita berbasis Python yang mengumpulkan dan mengagregasi artikel berita dari ribuan sumber media resmi melalui Google News RSS. Tanpa memerlukan kunci API AI — scraping murni berbasis RSS dengan analisis kata kunci bawaan.
 
-## Features
+## Fitur
 
-- **Pure RSS Scraping** — Fetches news from Google News RSS without any API key or usage limits
-- **Flexible Search** — Search by topic, location, or both
-- **Time Range Filtering** — Filter results by 24 hours, 7 days, 30 days, or all time
-- **Keyword Analysis** — Automatically identifies the most frequently mentioned keywords across all collected articles
-- **Structured JSON Output** — Exports results to a clean, well-formatted JSON file with metadata
-- **Auto-Organized Storage** — Output files are saved in date-based folders (e.g., `17.07/`) with descriptive filenames
+- **Scraping Murni RSS** — Mengambil berita dari Google News RSS tanpa kunci API atau batasan penggunaan
+- **Pencarian Fleksibel** — Cari berdasarkan topik, lokasi, atau keduanya
+- **Filter Rentang Waktu** — Filter hasil berdasarkan 24 jam, 7 hari, 30 hari, atau semua waktu
+- **Analisis Kata Kunci** — Mengidentifikasi kata kunci yang paling sering muncul dari seluruh artikel yang dikumpulkan
+- **Output JSON Terstruktur** — Mengekspor hasil ke file JSON yang rapi dan terformat dengan baik beserta metadata
+- **Penyimpanan Otomatis Terorganisir** — File output disimpan dalam folder berbasis tanggal (contoh: `17.07/`) dengan nama file yang deskriptif
 
-## Requirements
+## Persyaratan
 
 - **Python 3.10+**
-- **Jupyter Notebook** (to run `engine.ipynb`)
+- **Jupyter Notebook** (untuk menjalankan `engine.ipynb`)
 
-### Python Dependencies
+### Dependensi Python
 
-| Package      | Description                              |
-|--------------|------------------------------------------|
-| `feedparser` | Parses Google News RSS/Atom feeds        |
-| `requests`   | Makes HTTP requests to the RSS endpoint  |
+| Paket        | Deskripsi                                  |
+|--------------|--------------------------------------------|
+| `feedparser` | Mengurai feed RSS/Atom dari Google News    |
+| `requests`   | Melakukan HTTP request ke endpoint RSS     |
 
-> Standard library modules used: `os`, `re`, `urllib.parse`, `json`, `collections`, `datetime`
+> Modul standar Python yang digunakan: `os`, `re`, `urllib.parse`, `json`, `collections`, `datetime`
 
-## Installation
+## Instalasi
 
-1. **Clone the repository**
+1. **Kloning repositori**
 
    ```bash
-   git clone https://github.com/your-username/MediaScrapper.git
+   git clone https://github.com/username-anda/MediaScrapper.git
    cd MediaScrapper
    ```
 
-2. **Install dependencies**
+2. **Instal dependensi**
 
    ```bash
    pip install feedparser requests
    ```
 
-3. **Open the notebook**
+3. **Buka notebook**
 
    ```bash
    jupyter notebook engine.ipynb
    ```
 
-## Usage
+## Cara Penggunaan
 
-1. Open [`engine.ipynb`](engine.ipynb) in Jupyter Notebook
-2. Run all cells. The interactive prompt will ask for:
+1. Buka [`engine.ipynb`](engine.ipynb) di Jupyter Notebook
+2. Jalankan semua sel. Prompt interaktif akan menanyakan:
 
-   | Prompt | Description | Example |
-   |--------|-------------|---------|
-   | **Topik Berita** | The news topic to search for | `Kebakaran`, `Korupsi`, `Sepak Bola` |
-   | **Lokasi** | Geographic focus of the news | `Bangkok`, `Indonesia`, `Seluruh dunia` |
-   | **Rentang Waktu** | `1` = 24h, `2` = 7 days, `3` = 30 days, `4` = all time | `2` |
-   | **Jumlah Maksimal** | Maximum number of articles to collect | `15` |
+   | Prompt | Deskripsi | Contoh |
+   |--------|-----------|--------|
+   | **Topik Berita** | Topik berita yang ingin dicari | `Kebakaran`, `Korupsi`, `Sepak Bola` |
+   | **Lokasi** | Fokus geografis berita | `Bangkok`, `Indonesia`, `Seluruh dunia` |
+   | **Rentang Waktu** | `1` = 24 jam, `2` = 7 hari, `3` = 30 hari, `4` = semua waktu | `2` |
+   | **Jumlah Maksimal** | Jumlah maksimal artikel yang akan dikumpulkan | `15` |
 
-3. Results are printed to the console and exported to a JSON file automatically
+3. Hasil ditampilkan di konsol dan diekspor ke file JSON secara otomatis
 
-### Output Structure
+### Struktur Output
 
-Results are saved in a date-based folder with the following naming convention:
+Hasil disimpan dalam folder berbasis tanggal dengan konvensi penamaan berikut:
 
 ```
-DD.MM/scrape_{Topic}_{Location}_{YYYYMMDD}.json
+DD.MM/scrape_{Topik}_{Lokasi}_{YYYYMMDD}.json
 ```
 
-**Example:** `17.07/scrape_Sepak_Bola_Seluruh_dunia_20260717.json`
+**Contoh:** `17.07/scrape_Sepak_Bola_Seluruh_dunia_20260717.json`
 
-The JSON file contains:
+File JSON berisi:
 
 ```json
 {
@@ -81,7 +81,7 @@ The JSON file contains:
     "berita": [
         {
             "source": "CNN Indonesia",
-            "title": "Article headline here",
+            "title": "Judul artikel di sini",
             "link": "https://news.google.com/rss/articles/...",
             "published": "Mon, 13 Jul 2026 03:44:42 GMT"
         }
@@ -89,36 +89,36 @@ The JSON file contains:
     "kata_kunci_terpopuler": [
         {
             "peringkat": 1,
-            "kata_kunci": "Keyword",
+            "kata_kunci": "KataKunci",
             "jumlah_kemunculan": 5
         }
     ]
 }
 ```
 
-## Project Structure
+## Struktur Proyek
 
 ```
 MediaScrapper/
-├── engine.ipynb                                    # Main notebook with scraper logic
-├── README.md                                       # Project documentation
-├── .gitattributes                                  # Git configuration
-├── scrape_Chat_GPT_Amerika_20260717.xlsx           # Sample output (Excel)
-├── scrape_Korupsi_indonesia_20260717.xlsx           # Sample output (Excel)
-└── 17.07/                                          # Date-based output folder
-    ├── scrape_Kebakaran_bangkok_20260717.json       # Scraped news data
-    ├── scrape_Kereta_api_Indonesia_20260717.json     # Scraped news data
-    └── scrape_Sepak_Bola_Seluruh_dunia_20260717.json # Scraped news data
+├── engine.ipynb                                    # Notebook utama berisi logika scraper
+├── README.md                                       # Dokumentasi proyek
+├── .gitattributes                                  # Konfigurasi Git
+├── scrape_Chat_GPT_Amerika_20260717.xlsx           # Contoh output (Excel)
+├── scrape_Korupsi_indonesia_20260717.xlsx           # Contoh output (Excel)
+└── 17.07/                                          # Folder output berbasis tanggal
+    ├── scrape_Kebakaran_bangkok_20260717.json       # Data berita hasil scraping
+    ├── scrape_Kereta_api_Indonesia_20260717.json     # Data berita hasil scraping
+    └── scrape_Sepak_Bola_Seluruh_dunia_20260717.json # Data berita hasil scraping
 ```
 
-## How It Works
+## Cara Kerja
 
-1. **Query Construction** — Combines the user-provided topic and location into a search query, appending a Google News time filter (`when:1d`, `when:7d`, `when:30d`) if applicable
-2. **RSS Fetching** — Sends an HTTP GET request to `https://news.google.com/rss/search` with the encoded query
-3. **Feed Parsing** — Uses `feedparser` to parse the XML response and extract article title, source, link, and publication date
-4. **Keyword Extraction** — Tokenizes all article titles, filters out Indonesian stop words, and counts word frequencies using `collections.Counter`
-5. **JSON Export** — Serializes the collected data and keyword analysis into a structured JSON file
+1. **Konstruksi Query** — Menggabungkan topik dan lokasi yang dimasukkan pengguna menjadi query pencarian, lalu menambahkan filter waktu Google News (`when:1d`, `when:7d`, `when:30d`) jika dipilih
+2. **Pengambilan RSS** — Mengirim HTTP GET request ke `https://news.google.com/rss/search` dengan query yang telah di-encode
+3. **Parsing Feed** — Menggunakan `feedparser` untuk mengurai respons XML dan mengekstrak judul artikel, sumber, tautan, dan tanggal publikasi
+4. **Ekstraksi Kata Kunci** — Melakukan tokenisasi pada semua judul artikel, memfilter kata-kata umum bahasa Indonesia (stop words), dan menghitung frekuensi kata menggunakan `collections.Counter`
+5. **Ekspor JSON** — Melakukan serialisasi data yang terkumpul dan analisis kata kunci ke dalam file JSON terstruktur
 
-## License
+## Lisensi
 
-This project is open-source and available for personal and educational use.
+Proyek ini bersifat open-source dan tersedia untuk penggunaan pribadi serta edukasi.

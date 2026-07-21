@@ -1,13 +1,13 @@
+import os
+import io
 import concurrent.futures
-import re
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_file
 import requests
 from bs4 import BeautifulSoup
-import io
 import pandas as pd
-from flask import Flask, jsonify, render_template, request, send_file
+from google import genai
 
 app = Flask(__name__)
 
@@ -15,25 +15,22 @@ HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 }
 
+# Masukkan Gemini API Key Anda di sini atau via Environment Variable
+# GEMINI_API_KEY = "AQ.Ab8RN6IJ26P7-uz-0lcdwpXLe0jT-2ddaFZXwA60tvDWVNvtwQ"
+GEMINI_API_KEY = "AIzaSyBKFdWcvr2BOkVKTSc5YbZ-h5ZK2l4knYo"
+
+def get_gemini_client():
+    if GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY":
+        return genai.Client(api_key=GEMINI_API_KEY)
+    return None
+
 def ekstrak_detail_meta(url):
-    """Mengambil OpenGraph image & description dari URL artikel asli."""
-    foto = "-"
+    """Mengambil description dari URL artikel asli."""
     deskripsi = "-"
     try:
         response = requests.get(url, headers=HEADERS, timeout=5)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 1. Gambar
-            og_img = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
-            if og_img and og_img.get("content"):
-                foto = og_img["content"]
-            else:
-                first_img = soup.find("img")
-                if first_img and first_img.get("src") and first_img["src"].startswith("http"):
-                    foto = first_img["src"]
-
-            # 2. Deskripsi
             og_desc = soup.find("meta", property="og:description") or soup.find("meta", attrs={"name": "description"})
             if og_desc and og_desc.get("content"):
                 deskripsi = og_desc["content"].strip()
@@ -47,45 +44,35 @@ def ekstrak_detail_meta(url):
     except Exception:
         pass
     
-    return {"foto": foto, "deskripsi": deskripsi}
+    return {"deskripsi": deskripsi}
 
 def proses_item_berita(item):
-    """Memproses 1 item berita RSS dan mengekstrak detailnya."""
+    """Memproses 1 item berita RSS."""
     title = item.find('title').text if item.find('title') is not None else 'Tanpa Judul'
     link = item.find('link').text if item.find('link') is not None else '#'
     pub_date = item.find('pubDate').text if item.find('pubDate') is not None else '-'
     
-    # Ambil Nama Sumber Berita dari tag <source>
     source_tag = item.find('source')
     sumber_nama = source_tag.text if source_tag is not None else 'Google News'
 
-    # Ekstrak gambar & deskripsi asli via multithreading
     detail = ekstrak_detail_meta(link)
 
     return {
         "Judul": title,
         "Sumber Nama Website": sumber_nama,
         "Deskripsi Artikel": detail["deskripsi"],
-        "Foto": detail["foto"],
         "Sumber": link,
-        "Tanggal": pub_date
+        "Tanggal": pub_date,
+        "Caption": ""  # Default kosong
     }
 
 def scrape_google_news(topik, lokasi, rentang_waktu, max_results):
-    """Membentuk Query RSS dan melakukan Scraping."""
     query = topik
-    
-    # Filter Lokasi
     if lokasi.lower() in ['indonesia', 'id']:
-        ceid = "ID:id"
-        hl = "id"
-        gl = "ID"
+        ceid, hl, gl = "ID:id", "id", "ID"
     else:
-        ceid = "US:en"
-        hl = "en-US"
-        gl = "US"
+        ceid, hl, gl = "US:en", "en-US", "US"
 
-    # Filter Rentang Waktu
     if rentang_waktu == "24h":
         query += " when:1d"
     elif rentang_waktu == "7d":
@@ -101,7 +88,6 @@ def scrape_google_news(topik, lokasi, rentang_waktu, max_results):
         root = ET.fromstring(res.content)
         items = root.findall('./channel/item')[:max_results]
 
-        # Menggunakan ThreadPoolExecutor agar ekstraksi metadata cepat
         berita_list = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             results = executor.map(proses_item_berita, items)
@@ -132,24 +118,109 @@ def handle_scrape():
         "berita": hasil
     })
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+# --- ENDPOINT AI GEMINI CAPTION GENERATOR ---
+@app.route('/api/generate-caption', methods=['POST'])
+def generate_caption():
+    data = request.json
+    judul = data.get('judul', '')
+    deskripsi = data.get('deskripsi', '')
+    sumber = data.get('sumber', '')
+
+    if not judul:
+        return jsonify({"status": "error", "message": "Judul berita tidak ditemukan"}), 400
+
+    prompt = f"""Kamu adalah seorang profesional Social Media Specialist & Content Creator.
+Buatkan caption media sosial yang menarik, informatif, dan ringkas dalam bahasa Indonesia berdasarkan berita berikut:
+
+Judul Berita: {judul}
+Deskripsi/Ringkasan: {deskripsi}
+Sumber Media: {sumber}
+
+Ketentuan Format Caption:
+1. Buat hook/kalimat pembuka yang memikat perhatian pembaca.
+2. Rangkum inti berita secara jelas dan informatif dalam 1-2 paragraf singkat.
+3. DILARANG MENYERTAKAN kalimat pertanyaan interaktif, ajakan diskusi, atau promosi komentar di bagian akhir (seperti "Bagaimana menurutmu?", "Apakah kamu setuju?", "Tulis di kolom komentar", dll).
+4. Gunakan emoji yang pas dan profesional.
+5. Pada bagian paling bawah, WAJIB menyertakan tepat 5 hashtag berikut (tanpa tanda kurung atau placeholder):
+   #dlabsign.news #beritaindonesia (ditambah 3 hashtag spesifik lainnya yang relevan dengan topik berita)
+
+Output langsung berupa teks caption saja tanpa kata pengantar atau penutup dari AI.
+"""
+
+    try:
+        client = get_gemini_client()
+        if not client:
+            return jsonify({"status": "error", "message": "Gemini API Key belum dikonfigurasi di server (GEMINI_API_KEY)."}), 500
+
+        response = client.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=prompt,
+        )
+        
+        return jsonify({
+            "status": "success",
+            "caption": response.text.strip()
+        })
+    except Exception as e:
+        print(f"Error Gemini API: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# --- ENDPOINT EXPORT EXCEL ---
+@app.route('/api/export/excel', methods=['POST'])
+def export_excel():
+    data = request.json.get('berita', [])
+    if not data:
+        return jsonify({"status": "error", "message": "Tidak ada data untuk di-export"}), 400
     
-    # ------------------------------- Export Excel
+    df = pd.DataFrame(data)
     
+    # Kolom yang akan diekspor ke Excel (tanpa foto, menyertakan Caption AI)
+    cols = ['Judul', 'Sumber Nama Website', 'Deskripsi Artikel', 'Caption', 'Sumber', 'Tanggal']
+    for col in cols:
+        if col not in df.columns:
+            df[col] = ''
+            
+    df = df[cols]
+    df.rename(columns={
+        'Sumber Nama Website': 'Sumber Media',
+        'Caption': 'Caption AI (Sosmed)'
+    }, inplace=True)
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Berita & Caption AI', index=False)
+        
+        # Format lebar kolom otomatis
+        worksheet = writer.sheets['Berita & Caption AI']
+        for col in worksheet.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = col[0].column_letter
+            worksheet.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 50)
+
+    output.seek(0)
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='hasil_berita_dan_caption.xlsx'
+    )
+
 @app.route('/api/export/csv', methods=['POST'])
 def export_csv():
     data = request.json.get('berita', [])
     if not data:
         return jsonify({"status": "error", "message": "Tidak ada data untuk di-export"}), 400
     
-    # Konversi JSON ke DataFrame Pandas
     df = pd.DataFrame(data)
+    cols = ['Judul', 'Sumber Nama Website', 'Deskripsi Artikel', 'Caption', 'Sumber', 'Tanggal']
+    for col in cols:
+        if col not in df.columns:
+            df[col] = ''
+            
+    df = df[cols]
+    df.rename(columns={'Sumber Nama Website': 'Sumber Media', 'Caption': 'Caption AI'}, inplace=True)
     
-    # Pilih dan atur urutan kolom
-    df = df[['Judul', 'Sumber Nama Website', 'Deskripsi Artikel', 'Foto', 'Sumber', 'Tanggal']]
-    
-    # Simpan ke buffer memori sebagai CSV
     output = io.BytesIO()
     df.to_csv(output, index=False, encoding='utf-8-sig')
     output.seek(0)
@@ -158,27 +229,8 @@ def export_csv():
         output,
         mimetype='text/csv',
         as_attachment=True,
-        download_name='hasil_scraping_berita.csv'
+        download_name='hasil_berita_dan_caption.csv'
     )
 
-@app.route('/api/export/excel', methods=['POST'])
-def export_excel():
-    data = request.json.get('berita', [])
-    if not data:
-        return jsonify({"status": "error", "message": "Tidak ada data untuk di-export"}), 400
-    
-    df = pd.DataFrame(data)
-    df = df[['Judul', 'Sumber Nama Website', 'Deskripsi Artikel', 'Foto', 'Sumber', 'Tanggal']]
-    
-    # Simpan ke buffer memori sebagai file Excel (.xlsx)
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='Hasil Scraping', index=False)
-    output.seek(0)
-    
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        as_attachment=True,
-        download_name='hasil_scraping_berita.xlsx'
-    )
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
