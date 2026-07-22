@@ -101,7 +101,7 @@ def scrape_google_news(topik, lokasi, rentang_waktu, max_results):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index2.html')
 
 @app.route('/api/scrape', methods=['POST'])
 def handle_scrape():
@@ -129,22 +129,25 @@ def generate_caption():
     if not judul:
         return jsonify({"status": "error", "message": "Judul berita tidak ditemukan"}), 400
 
-    prompt = f"""Kamu adalah seorang profesional Social Media Specialist & Content Creator.
-Buatkan caption media sosial yang menarik, informatif, dan ringkas dalam bahasa Indonesia berdasarkan berita berikut:
+    prompt = f"""Kamu adalah seorang Social Media Specialist & Content Creator profesional.
+Buatkan caption media sosial dalam bahasa Indonesia yang formal, lugas, dan mudah dipahami oleh audiens berusia 18 hingga 40 tahun berdasarkan berita berikut:
 
 Judul Berita: {judul}
 Deskripsi/Ringkasan: {deskripsi}
 Sumber Media: {sumber}
 
-Ketentuan Format Caption:
-1. Buat hook/kalimat pembuka yang memikat perhatian pembaca.
-2. Rangkum inti berita secara jelas dan informatif dalam 1-2 paragraf singkat.
-3. DILARANG MENYERTAKAN kalimat pertanyaan interaktif, ajakan diskusi, atau promosi komentar di bagian akhir (seperti "Bagaimana menurutmu?", "Apakah kamu setuju?", "Tulis di kolom komentar", dll).
-4. Gunakan emoji yang pas dan profesional.
-5. Pada bagian paling bawah, WAJIB menyertakan tepat 5 hashtag berikut (tanpa tanda kurung atau placeholder):
-   #dlabsign.news #beritaindonesia (ditambah 3 hashtag spesifik lainnya yang relevan dengan topik berita)
+Ketentuan Penulisan:
+1. DILARANG MENGGUNAKAN format Markdown seperti cetak tebal (contoh: **teks**), cetak miring (*teks*), atau simbol tanda bintang (*). Tulis dalam bentuk teks polos (plain text) biasa.
+2. DILARANG MENGGUNAKAN emoji, ikon, atau simbol dekoratif apa pun di seluruh isi caption.
+3. Panjang caption MAKSIMAL 3 PARAGRAF singkat:
+   - Paragraf 1: Kalimat pembuka (hook) yang memikat perhatian namun tetap bernuansa formal.
+   - Paragraf 2 & 3: Rangkuman inti berita yang padat, informatif, dan mudah dipahami.
+4. Gunakan bahasa formal yang komunikatif, rapi, dan profesional (tidak terlalu santai/gaul, namun tidak kaku).
+5. DILARANG KERAS menyertakan kalimat pertanyaan interaktif, ajakan diskusi, atau arahan komentar di bagian akhir (seperti "Bagaimana menurutmu?", "Tulis di kolom komentar", dll).
+6. Di bagian paling bawah (setelah paragraf), WAJIB menyertakan tepat 5 hashtag dipisahkan spasi tanpa tanda kurung/placeholder:
+   #dlabsign.news #beritaindonesia [3 hashtag spesifik & relevan lainnya dengan topik berita]
 
-Output langsung berupa teks caption saja tanpa kata pengantar atau penutup dari AI.
+Output langsung berupa teks caption saja tanpa kata pengantar, salam, atau penjelasan dari AI.
 """
 
     try:
@@ -153,7 +156,7 @@ Output langsung berupa teks caption saja tanpa kata pengantar atau penutup dari 
             return jsonify({"status": "error", "message": "Gemini API Key belum dikonfigurasi di server (GEMINI_API_KEY)."}), 500
 
         response = client.models.generate_content(
-            model='gemini-3.5-flash',
+            model='gemini-3.1-flash-lite',
             contents=prompt,
         )
         

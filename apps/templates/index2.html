@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova — Scraper Berita & AI Caption Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg-main: #09090b;
+    --bg-card: #121215;
+    --bg-input: #18181b;
+    --border: #27272a;
+    --border-focus: #7c3aed;
+    --purple-main: #7c3aed;
+    --purple-hover: #6d28d9;
+    --text-hi: #f4f4f5;
+    --text-mid: #a1a1aa;
+    --text-low: #71717a;
+    --success: #10b981;
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-hi);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, .brand { font-family: 'Poppins', sans-serif; }
+
+  /* ---------- Topbar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; padding: 14px 28px;
+    background: #0d0d10;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+  .brand .mark {
+    width: 32px; height: 32px; border-radius: 8px; flex: 0 0 32px;
+    background: var(--purple-main);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #fff;
+  }
+  .crumbs { display: flex; flex-direction: column; gap: 2px; }
+  .crumbs .path { font-size: 11px; color: var(--text-low); }
+  .crumbs .path span { color: var(--purple-main); }
+  .crumbs h1 { font-size: 16px; font-weight: 600; margin: 0; }
+  .top-mid { display: flex; align-items: center; gap: 20px; }
+  .top-actions { display: flex; align-items: center; gap: 12px; }
+  .top-search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 999px; padding: 7px 14px; width: 220px;
+  }
+  .top-search input { background: transparent; border: none; outline: none; color: var(--text-hi); font-size: 13px; width: 100%; }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text-mid); cursor: pointer;
+  }
+  .icon-btn:hover { color: #fff; border-color: var(--text-low); }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--purple-main);
+    display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px;
+  }
+
+  /* ---------- Content Layout ---------- */
+  .content {
+    padding: 24px; display: grid; grid-template-columns: 340px 1fr; gap: 24px;
+    max-width: 1550px; margin: 0 auto;
+    align-items: start; /* Mencegah kolom kiri tertarik melar */
+  }
+  @media (max-width: 1024px) { .content { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+
+  /* ---------- STICKY FORM PANEL (Kiri) ---------- */
+  .filter-card { 
+    padding: 22px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 18px; 
+    position: sticky; 
+    top: 80px; /* Menempel 80px dari atas saat di-scroll */
+    align-self: start; /* Agar tinggi card pas sesuai konten */
+    max-height: calc(100vh - 100px); 
+    overflow-y: auto;
+  }
+  .filter-card::-webkit-scrollbar { width: 4px; }
+  .filter-card::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+
+  .filter-card h2 { font-size: 16px; margin: 0 0 4px; font-weight: 600; }
+  .filter-card p { margin: 0; color: var(--text-mid); font-size: 12px; }
+
+  .filter-form { display: flex; flex-direction: column; gap: 14px; }
+  .field label {
+    display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--text-mid); margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text-hi); font-size: 13px; outline: none;
+    transition: border-color .15s ease;
+  }
+  .field input:focus, .field select:focus { border-color: var(--border-focus); }
+
+  .btn {
+    height: 40px; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+    padding: 0 18px; transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn-primary { color: #fff; background: var(--purple-main); }
+  .btn-primary:hover { background: var(--purple-hover); }
+  .btn-secondary { color: var(--text-hi); background: var(--bg-input); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #222226; }
+  
+  /* Tombol Hapus */
+  .btn-danger {
+    color: var(--danger);
+    background: var(--danger-bg);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+  }
+  .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+
+  .btn-block { width: 100%; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-sm { height: 32px; padding: 0 10px; font-size: 11.5px; }
+
+  .promo-card {
+    border-radius: var(--radius-sm); padding: 12px;
+    background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.2);
+  }
+  .promo-card p { margin: 0; font-size: 11.5px; color: var(--text-mid); line-height: 1.4; }
+  .promo-card p i { color: var(--purple-main); margin-right: 4px; }
+
+  /* ---------- Output Panel ---------- */
+  .output-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+  .results-head {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    padding: 18px 22px; border-bottom: 1px solid var(--border);
+  }
+  .results-head h2 { font-size: 15px; margin: 0; font-weight: 600; }
+  .badge {
+    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+    background: rgba(124, 58, 237, 0.15); color: #a78bfa; border: 1px solid rgba(124, 58, 237, 0.3);
+  }
+  .export-actions { display: flex; gap: 8px; }
+
+  /* ---------- HALAMAN LOADING ---------- */
+  .loading-wrap { display: none; flex-direction: column; gap: 20px; padding: 36px 24px; text-align: center; align-items: center; }
+  .loading-wrap.show { display: flex; }
+  .loading-spinner-box {
+    display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 10px;
+  }
+  .spinner-ring {
+    width: 42px; height: 42px;
+    border: 3px solid rgba(124, 58, 237, 0.2);
+    border-top-color: var(--purple-main);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-hi); }
+  .loading-text p { margin: 4px 0 0; font-size: 12px; color: var(--text-mid); }
+
+  .skeleton-list { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .skeleton-row {
+    height: 52px; width: 100%; border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, var(--bg-input) 25%, #222228 50%, var(--bg-input) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ---------- EMPTY STATE ---------- */
+  .empty-state {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 56px 20px; text-align: center; gap: 8px; color: var(--text-mid);
+  }
+  .empty-state.show { display: flex; }
+  .empty-state i { font-size: 32px; color: var(--purple-main); margin-bottom: 6px; }
+
+  /* ---------- OPTIMALISASI TABEL ---------- */
+  #resultContainer { display: none; flex-direction: column; overflow: hidden; }
+  #resultContainer.show { display: flex; }
+  .table-scroll { overflow-x: auto; padding: 16px 22px; }
+
+  table.news-table {
+    width: 100%; border-collapse: collapse; min-width: 880px;
+    table-layout: fixed;
+  }
+  table.news-table th.col-no { width: 45px; text-align: center; }
+  table.news-table th.col-title { width: 32%; }
+  table.news-table th.col-src { width: 18%; }
+  table.news-table th.col-caption { width: 34%; }
+  table.news-table th.col-act { width: 130px; text-align: center; }
+
+  table.news-table th {
+    text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--text-low); padding: 10px 12px; border-bottom: 1px solid var(--border);
+    letter-spacing: .03em;
+  }
+  table.news-table td {
+    padding: 14px 12px; vertical-align: top; font-size: 12.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.news-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+  .news-title a {
+    color: var(--text-hi); text-decoration: none; font-weight: 600; font-size: 13px; line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    word-break: break-word;
+  }
+  .news-title a:hover { color: #a78bfa; }
+
+  .src-name { font-weight: 600; font-size: 12px; color: var(--text-hi); display: block; margin-bottom: 3px; word-break: break-word; }
+  .src-date { font-size: 11px; color: var(--text-low); line-height: 1.3; display: block; }
+
+  .caption-box textarea {
+    width: 100%; height: 96px; resize: vertical; padding: 8px 10px; border-radius: var(--radius-sm);
+    background: var(--bg-input); border: 1px solid var(--border); color: var(--text-hi);
+    font-size: 12px; font-family: inherit; outline: none; line-height: 1.4;
+  }
+  .caption-box textarea:focus { border-color: var(--border-focus); }
+  .caption-box textarea::-webkit-scrollbar { width: 5px; }
+  .caption-box textarea::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+
+  .news-actions { display: flex; flex-direction: column; gap: 6px; }
+  .btn-magic { background: var(--purple-main); color: #fff; }
+  .btn-magic:hover { background: var(--purple-hover); }
+
+  @media (max-width: 768px) {
+    .content { padding: 16px; }
+    .topbar { padding: 12px 16px; }
+    .top-search { display: none; }
+    .filter-card { position: static; max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="top-mid">
+      <div class="brand"><span class="mark"><i class="fa-solid fa-satellite-dish"></i></span>Nova Scraper</div>
+      <div class="crumbs" style="border-left:1px solid var(--border);padding-left:16px;">
+        <div class="path">Nova <span>/</span> <span>Pencarian Berita</span></div>
+        <h1>Scraper Berita &amp; AI Caption</h1>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="top-search">
+        <i class="fa-solid fa-magnifying-glass" style="color:var(--text-low);font-size:12px;"></i>
+        <input type="text" placeholder="Cari cepat...">
+      </div>
+      <div class="icon-btn"><i class="fa-regular fa-bell"></i></div>
+      <div class="avatar">DK</div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- LEFT PANEL (FORM CARI BERITA) -->
+    <section class="card filter-card">
+      <div>
+        <h2>Cari Berita</h2>
+        <p>Hasil akan tampil di panel kanan lengkap dengan opsi caption AI dan ekspor.</p>
+      </div>
+
+      <form id="searchForm" class="filter-form">
+        <div class="field">
+          <label for="topik">Topik Berita</label>
+          <input type="text" id="topik" placeholder="Contoh: Crypto, Gadget, AI" required>
+        </div>
+
+        <div class="field">
+          <label for="lokasi">Lokasi</label>
+          <select id="lokasi">
+            <option value="Indonesia">Indonesia</option>
+            <option value="Global">Global (Internasional)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="rentangWaktu">Rentang Waktu</label>
+          <select id="rentangWaktu">
+            <option value="all" selected>Semua Waktu</option>
+            <option value="24h">24 Jam Terakhir</option>
+            <option value="7d">7 Hari Terakhir</option>
+            <option value="30d">30 Hari Terakhir</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="maxResults">Jumlah Berita</label>
+          <input type="number" id="maxResults" value="15" min="1" max="50">
+        </div>
+
+        <button type="submit" id="btnSubmit" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>Cari Berita</span>
+        </button>
+      </form>
+
+      <div class="promo-card">
+        <p><i class="fa-solid fa-bolt"></i>Gemini AI aktif — buat caption otomatis untuk tiap artikel langsung dari tabel hasil.</p>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL (TABEL HASIL) -->
+    <section class="output-col">
+
+      <!-- HALAMAN LOADING -->
+      <div id="loading" class="loading-wrap card">
+        <div class="loading-spinner-box">
+          <div class="spinner-ring"></div>
+          <div class="loading-text">
+            <h3>Sedang Menghubungi Server Berita...</h3>
+            <p>Mengambil artikel terbaru dan menyusun daftar untuk Anda</p>
+          </div>
+        </div>
+        <div class="skeleton-list">
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+          <div class="skeleton-row"></div>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div id="emptyState" class="empty-state card">
+        <i class="fa-solid fa-inbox"></i>
+        <h3 style="margin:0;font-size:14px;color:var(--text-hi);">Belum ada berita ditemukan</h3>
+        <p style="margin:0;font-size:12px;max-width:320px;">Coba ubah kata kunci topik atau rentang waktu pencarian Anda.</p>
+      </div>
+
+      <!-- RESULTS TABLE -->
+      <div id="resultContainer" class="card">
+        <div class="results-head">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h2>Hasil Pencarian</h2>
+            <span id="totalBadge" class="badge">0 Berita</span>
+          </div>
+          <div class="export-actions">
+            <button onclick="downloadFile('excel')" class="btn btn-secondary btn-sm">
+              <i class="fa-solid fa-file-excel" style="color:var(--success);"></i>Excel
+            </button>
+            <button onclick="downloadFile('csv')" class="btn btn-secondary btn-sm">
+              <i class="fa-solid fa-file-csv"></i>CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="news-table">
+            <thead>
+              <tr>
+                <th class="col-no">No</th>
+                <th class="col-title">Judul Artikel</th>
+                <th class="col-src">Sumber</th>
+                <th class="col-caption">Caption AI</th>
+                <th class="col-act">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+</div>
+
+<script>
+let currentBeritaData = [];
+
+function syncCaptions() {
+  currentBeritaData.forEach((item, idx) => {
+    const textarea = document.getElementById(`caption-${idx}`);
+    if (textarea) {
+      item.Caption = textarea.value;
+    }
+  });
+}
+
+function renderTable() {
+  const tableBody = document.getElementById('tableBody');
+  const resultContainer = document.getElementById('resultContainer');
+  const emptyState = document.getElementById('emptyState');
+  
+  tableBody.innerHTML = '';
+
+  if (!currentBeritaData || currentBeritaData.length === 0) {
+    resultContainer.classList.remove('show');
+    emptyState.classList.add('show');
+    document.getElementById('totalBadge').innerText = '0 Berita';
+    return;
+  }
+
+  document.getElementById('totalBadge').innerText = `${currentBeritaData.length} Berita Ditemukan`;
+
+  currentBeritaData.forEach((item, index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="text-align:center;color:var(--text-low);">${index + 1}</td>
+
+      <td class="news-title">
+        <a href="${item.Sumber}" target="_blank" title="${item.Judul}">${item.Judul}</a>
+      </td>
+
+      <td>
+        <span class="src-name">${item['Sumber Nama Website']}</span>
+        <span class="src-date">${item.Tanggal}</span>
+      </td>
+
+      <td class="caption-box">
+        <textarea id="caption-${index}" placeholder="Klik 'Caption' untuk buat otomatis via Gemini AI...">${item.Caption || ''}</textarea>
+      </td>
+
+      <td>
+        <div class="news-actions">
+          <button onclick="generateCaption(${index})" id="btn-caption-${index}" class="btn btn-magic btn-sm">
+            <i class="fa-solid fa-wand-magic-sparkles"></i><span>Caption</span>
+          </button>
+          <a href="${item.Sumber}" target="_blank" class="btn btn-secondary btn-sm" style="text-align:center;">
+            Link <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i>
+          </a>
+          <button onclick="deleteRow(${index})" class="btn btn-danger btn-sm" title="Hapus berita ini dari daftar">
+            <i class="fa-solid fa-xmark"></i><span>Hapus</span>
+          </button>
+        </div>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  emptyState.classList.remove('show');
+  resultContainer.classList.add('show');
+}
+
+function deleteRow(index) {
+  syncCaptions();
+  currentBeritaData.splice(index, 1);
+  renderTable();
+}
+
+document.getElementById('searchForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+
+  const topik = document.getElementById('topik').value;
+  const lokasi = document.getElementById('lokasi').value;
+  const rentangWaktu = document.getElementById('rentangWaktu').value;
+  const maxResults = document.getElementById('maxResults').value;
+
+  const loading = document.getElementById('loading');
+  const resultContainer = document.getElementById('resultContainer');
+  const emptyState = document.getElementById('emptyState');
+  const btnSubmit = document.getElementById('btnSubmit');
+
+  loading.classList.add('show');
+  resultContainer.classList.remove('show');
+  emptyState.classList.remove('show');
+  btnSubmit.disabled = true;
+
+  try {
+    const response = await fetch('/api/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topik: topik,
+        lokasi: lokasi,
+        rentang_waktu: rentangWaktu,
+        max_results: maxResults
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.berita && data.berita.length > 0) {
+      currentBeritaData = data.berita;
+      renderTable();
+    } else {
+      currentBeritaData = [];
+      renderTable();
+    }
+
+  } catch (error) {
+    alert('Terjadi kesalahan saat mengambil data.');
+    console.error(error);
+  } finally {
+    loading.classList.remove('show');
+    btnSubmit.disabled = false;
+  }
+});
+
+async function generateCaption(index){
+  syncCaptions();
+  const item = currentBeritaData[index];
+  const btn = document.getElementById(`btn-caption-${index}`);
+  const textarea = document.getElementById(`caption-${index}`);
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i>`;
+  textarea.placeholder = "Sedang memproses caption...";
+
+  try {
+    const response = await fetch('/api/generate-caption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        judul: item.Judul,
+        deskripsi: item['Deskripsi Artikel'],
+        sumber: item['Sumber Nama Website']
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.status === 'success') {
+      textarea.value = data.caption;
+      currentBeritaData[index].Caption = data.caption;
+    } else {
+      alert(`Gagal membuat caption: ${data.message}`);
+    }
+  } catch (err) {
+    alert("Terjadi kesalahan koneksi ke server.");
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i><span>Caption</span>`;
+  }
+}
+
+async function downloadFile(format){
+  if (currentBeritaData.length === 0) {
+    alert("Tidak ada data untuk diunduh.");
+    return;
+  }
+
+  syncCaptions();
+
+  const endpoint = format === 'excel' ? '/api/export/excel' : '/api/export/csv';
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ berita: currentBeritaData })
+    });
+
+    if (!response.ok) throw new Error('Gagal mendownload file');
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hasil_berita_dan_caption.${format === 'excel' ? 'xlsx' : 'csv'}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert("Terjadi kesalahan saat mengunduh file.");
+    console.error(err);
+  }
+}
+</script>
+</body>
+</html>
